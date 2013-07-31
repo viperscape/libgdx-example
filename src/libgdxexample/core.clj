@@ -1,4 +1,4 @@
-(ns libgdx-example.core
+(ns libgdxexample.core
   (:import (com.badlogic.gdx ApplicationListener Gdx Graphics)
            (com.badlogic.gdx.graphics GL10 Color Camera PerspectiveCamera)
            (com.badlogic.gdx.backends.lwjgl LwjglApplication)
