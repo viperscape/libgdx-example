@@ -33,11 +33,12 @@
     (create []
  
       (def lights (Lights. 0.4 0.4 0.4))
-      (doto lights (.add  (.set (DirectionalLight.) 0.8 0.8 0.8 -1 0.8 -0.2)))
+      (.add lights (.set (PointLight.) 50 90 120 0 0 0 20)) ;r g b, x y z, intensity
  
-      (def cam (new PerspectiveCamera 67 800 600))
+      (def cam (new PerspectiveCamera 75  (.getWidth Gdx/graphics) (.getWidth Gdx/graphics)))
       (doto (.position cam) (.set 1 1 1))
       (.lookAt cam 0 0 0)
+      (set! (.far cam) 300)
       (.update cam)
  
       (def camcontrol (new CameraInputController cam))
