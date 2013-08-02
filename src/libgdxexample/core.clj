@@ -33,7 +33,7 @@
     (create []
  
       (def lights (Lights. 0.4 0.4 0.4))
-      (.add lights (.set (DirectionalLight.) 0.8 0.8 0.8 -1 0.8 -0.2))
+      (doto lights (.add  (.set (DirectionalLight.) 0.8 0.8 0.8 -1 0.8 -0.2)))
  
       (def cam (new PerspectiveCamera 67 800 600))
       (doto (.position cam) (.set 1 1 1))
