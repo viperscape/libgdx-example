@@ -7,5 +7,5 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [com.badlogicgames.gdx/gdx "0.9.9-SNAPSHOT"]
                  [com.badlogicgames.gdx/gdx-backend-lwjgl "0.9.9-SNAPSHOT"]
-		             [com.badlogicgames.gdx/gdx-platform "0.9.9-SNAPSHOT" :classifier "natives-desktop"]]
+		 [com.badlogicgames.gdx/gdx-platform "0.9.9-SNAPSHOT" :classifier "natives-desktop"]]
   :main libgdxexample.core)
