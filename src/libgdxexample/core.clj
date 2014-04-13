@@ -1,83 +1,66 @@
 (ns libgdxexample.core
-  (:import (com.badlogic.gdx ApplicationListener Gdx Graphics)
-           (com.badlogic.gdx.graphics GL10 Color Camera PerspectiveCamera)
-           (com.badlogic.gdx.backends.lwjgl LwjglApplication)
-           (com.badlogic.gdx.assets AssetManager)
-           (com.badlogic.gdx.graphics.g3d Model ModelBatch ModelInstance)
-           (com.badlogic.gdx.graphics.g3d.lights Lights DirectionalLight)
-           (com.badlogic.gdx.graphics.g3d.utils CameraInputController))
+  (:import [com.badlogic.gdx ApplicationListener Gdx Graphics Game Screen]
+           [com.badlogic.gdx.graphics Color Camera PerspectiveCamera]
+           [com.badlogic.gdx.assets AssetManager]
+           [com.badlogic.gdx.graphics.g3d Model ModelBatch ModelInstance]
+           [com.badlogic.gdx.graphics.g3d.utils CameraInputController]
 
-  (:gen-class))
- 
- 
-(declare cam,camcontrol,lights,AM,MI,MB)
-(def assetloaded false)
- 
- 
-(defn display []
-  (.update camcontrol)
- 
-  (doto (Gdx/gl)
-    (.glViewport 0,0,(.getWidth Gdx/graphics),(.getHeight Gdx/graphics))
-    (.glClear GL10/GL_COLOR_BUFFER_BIT)
-    (.glClear GL10/GL_DEPTH_BUFFER_BIT))
- 
-  (.begin MB cam)
-    (doto MB (.render MI lights))
-  (.end MB)
-  )
- 
-(defn app-listener []
-  (proxy [ApplicationListener] []
-    (resize [w h] )
-    (create []
- 
-      (def lights (Lights. 0.4 0.4 0.4))
-      (.add lights (.set (PointLight.) 50 90 120 0 0 0 20)) ;r g b, x y z, intensity
- 
-      (def cam (new PerspectiveCamera 75  (.getWidth Gdx/graphics) (.getWidth Gdx/graphics)))
-      (doto (.position cam) (.set 1 1 1))
-      (.lookAt cam 0 0 0)
-      (set! (.far cam) 300)
-      (.update cam)
- 
-      (def camcontrol (new CameraInputController cam))
-      (doto (Gdx/input) (.setInputProcessor camcontrol))
- 
-      (def MB (new ModelBatch))
-      (def AM (new AssetManager))
-      (doto AM (.load "resources/ship.obj" Model))
-     )
- 
-    (render []
-      (do 
-        (if (.update AM)
-          (if assetloaded
-            (display)
-            (do
-              (prn "loading!!")
- 
-              (def MI (new ModelInstance (.get AM "resources/ship.obj" Model)))
- 
-              (prn "assets loaded!")
-              (def assetloaded true))))
- 
-        ))
-    (pause [] )
-    (resume [] )
-    (dispose [] (.dispose MB)(.dispose AM)) ;should find a way to clear our MI
- ))
- 
- 
-(defn app []
-  (LwjglApplication. (app-listener) "Clojure 3d Game" 800 600 false))
- 
+           [com.badlogic.gdx.graphics Color GL20]
+           [com.badlogic.gdx.graphics.g2d BitmapFont]
+           [com.badlogic.gdx.scenes.scene2d Stage]
+           [com.badlogic.gdx.scenes.scene2d.ui Label Label$LabelStyle])
+  (:gen-class
+   :name libgdxexample.core.Game
+   :extends com.badlogic.gdx.Game))
+
+(def server nil)
+(def stage (atom nil))
+
+(defonce fns (ref [])) ;;fns to be eval in gl thread
+
+(defmacro glfn [r fn]
+  "adds the fn to the list of fn's which get eval 
+  during opengl runtime in the opengl thread"
+  `(dosync (ref-set ~r (conj @fns (delay ~fn)))))
+
+(defn do-glfn []
+  "gets called repeatedly during update loop, 
+  gives gl context outside of thread; see glfn"
+  (if-not (empty? @fns)
+    (try
+     (doall (map deref @fns))
+     (dosync (ref-set fns []))
+     (catch Exception e (str "exception: " (.getMessage e)) )) ))
 
 
 
-(defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  ;; work around dangerous default behaviour in Clojure
-  (alter-var-root #'*read-eval* (constantly false))
-  (app))
+(def game-screen
+  (proxy [Screen] []
+    (show []
+      (reset! stage (Stage.))
+      (let [style (Label$LabelStyle. (BitmapFont.) (Color. 1 1 1 1))
+            label (Label. "Hello world!!!" style)]
+        (.addActor @stage label)))
+    (render [delta]
+      (do-glfn)
+      (.glClearColor (Gdx/gl) 0 0 0 0)
+      (.glClear (Gdx/gl) GL20/GL_COLOR_BUFFER_BIT)
+      (doto @stage
+        (.act delta)
+        (.draw)))
+    (resize [w h])
+    (dispose[] (reset! stage nil))
+    (hide [])
+    (pause [])
+    (resume [])))
+
+(defn -create [^Game this]
+  (.setScreen this game-screen))
+
+
+(defn example-glfncall []
+  (glfn fns (do
+              (reset! stage (Stage.))
+              (let [style (Label$LabelStyle. (BitmapFont.) (Color. 1 1 1 1))
+                    label (Label. "ahhhh!!" style)]
+                (.addActor @stage label)))))
